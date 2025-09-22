@@ -1,0 +1,1 @@
+// centralizas las peticiones fetch al backend.
