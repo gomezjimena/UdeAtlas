@@ -1,0 +1,144 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model tbl_Usuario {
+  id                Int                @id @default(autoincrement())
+  nombre            String
+  documento         String             @unique
+  correo            String             @unique
+  id_tipo_documento Int
+  id_rol            Int
+  comentarios       tbl_Comentario[]
+  eventos           tbl_Eventos[]      @relation("EventosPorUsuario")
+  favoritos         tbl_Favorito[]
+  rol               tbl_Rol            @relation(fields: [id_rol], references: [id])
+  tipoDocumento     tbl_Tipo_Documento @relation(fields: [id_tipo_documento], references: [id])
+}
+
+model tbl_Tipo_Documento {
+  id       Int           @id @default(autoincrement())
+  nombre   String
+  usuarios tbl_Usuario[]
+}
+
+model tbl_Rol {
+  id       Int                 @id @default(autoincrement())
+  nombre   String
+  permisos tbl_Permiso_X_Rol[]
+  usuarios tbl_Usuario[]
+}
+
+model tbl_Permiso {
+  id          Int                 @id @default(autoincrement())
+  nombre      String
+  descripcion String?
+  roles       tbl_Permiso_X_Rol[]
+}
+
+model tbl_Permiso_X_Rol {
+  id         Int         @id @default(autoincrement())
+  id_permiso Int
+  id_rol     Int
+  permiso    tbl_Permiso @relation(fields: [id_permiso], references: [id])
+  rol        tbl_Rol     @relation(fields: [id_rol], references: [id])
+}
+
+model tbl_Comentario {
+  id          Int         @id @default(autoincrement())
+  descripcion String
+  fecha       DateTime
+  id_usuario  Int
+  id_lugar    Int
+  lugar       tbl_Lugar   @relation(fields: [id_lugar], references: [id])
+  usuario     tbl_Usuario @relation(fields: [id_usuario], references: [id])
+}
+
+model tbl_Favorito {
+  id         Int         @id @default(autoincrement())
+  id_usuario Int
+  id_lugar   Int
+  lugar      tbl_Lugar   @relation(fields: [id_lugar], references: [id])
+  usuario    tbl_Usuario @relation(fields: [id_usuario], references: [id])
+}
+
+model tbl_Eventos {
+  id               Int         @id @default(autoincrement())
+  titulo           String
+  descripcion      String?
+  fecha_evento     DateTime
+  fecha_creacion   DateTime
+  id_usuario_admin Int
+  id_lugar         Int
+  lugar            tbl_Lugar   @relation(fields: [id_lugar], references: [id])
+  usuarioAdmin     tbl_Usuario @relation("EventosPorUsuario", fields: [id_usuario_admin], references: [id])
+}
+
+model tbl_Lugar {
+  id                Int              @id @default(autoincrement())
+  nombre            String
+  descripcion       String?
+  imagen            String?
+  x_coord           Float
+  y_coord           Float
+  id_tipo_lugar     Int
+  comentarios       tbl_Comentario[]
+  conexionesDestino tbl_Conexion[]   @relation("ConexionDestino")
+  conexionesOrigen  tbl_Conexion[]   @relation("ConexionOrigen")
+  eventos           tbl_Eventos[]
+  favoritos         tbl_Favorito[]
+  interiores        tbl_Interior[]
+  tipoLugar         tbl_Tipo_Lugar   @relation(fields: [id_tipo_lugar], references: [id])
+  rutasDestino      tbl_Ruta[]       @relation("RutaDestino")
+  rutasOrigen       tbl_Ruta[]       @relation("RutaOrigen")
+}
+
+model tbl_Tipo_Lugar {
+  id      Int         @id @default(autoincrement())
+  nombre  String
+  lugares tbl_Lugar[]
+}
+
+model tbl_Interior {
+  id          Int       @id @default(autoincrement())
+  nombre      String
+  descripcion String?
+  piso        Int
+  id_lugar    Int
+  lugar       tbl_Lugar @relation(fields: [id_lugar], references: [id])
+}
+
+model tbl_Conexion {
+  id               Int                   @id @default(autoincrement())
+  nombre           String
+  distancia        Float
+  id_lugar_origen  Int
+  id_lugar_destino Int
+  lugarDestino     tbl_Lugar             @relation("ConexionDestino", fields: [id_lugar_destino], references: [id])
+  lugarOrigen      tbl_Lugar             @relation("ConexionOrigen", fields: [id_lugar_origen], references: [id])
+  rutas            tbl_Conexion_X_Ruta[]
+}
+
+model tbl_Ruta {
+  id               Int                   @id @default(autoincrement())
+  distancia        Float
+  id_lugar_origen  Int
+  id_lugar_destino Int
+  conexiones       tbl_Conexion_X_Ruta[]
+  lugarDestino     tbl_Lugar             @relation("RutaDestino", fields: [id_lugar_destino], references: [id])
+  lugarOrigen      tbl_Lugar             @relation("RutaOrigen", fields: [id_lugar_origen], references: [id])
+}
+
+model tbl_Conexion_X_Ruta {
+  id          Int          @id @default(autoincrement())
+  orden       Int
+  id_ruta     Int
+  id_conexion Int
+  conexion    tbl_Conexion @relation(fields: [id_conexion], references: [id])
+  ruta        tbl_Ruta     @relation(fields: [id_ruta], references: [id])
+}
