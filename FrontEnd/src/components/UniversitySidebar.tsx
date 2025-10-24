@@ -1,44 +1,25 @@
-import { Heart, MapPin, User, Navigation, Building, Loader2 } from "lucide-react";
+import { Heart, MapPin, User, Navigation, Building, Loader2, Route } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCategories } from "@/hooks/useCategories";
 
-const buildings = [
-  "Edificio A - Ingeniería",
-  "Edificio B - Ciencias",
-  "Edificio C - Humanidades", 
-  "Biblioteca Central",
-  "Cafetería Principal",
-  "Auditorio Magna",
-  "Centro Deportivo",
-  "Laboratorios",
-  "Rectoría",
-  "Entrada Principal"
-];
-
 // Las categorías ahora se obtienen dinámicamente de la base de datos
 
 interface UniversitySidebarProps {
-  origin: string;
-  destination: string;
-  onOriginChange: (value: string) => void;
-  onDestinationChange: (value: string) => void;
-  onCalculateRoute: () => void;
   onFavoritesClick: () => void;
   selectedCategory: string;
   onCategoryChange: (value: string) => void;
+  route: any[];
+  origin: string;
+  destination: string;
 }
 
 export const UniversitySidebar = ({
-  origin,
-  destination,
-  onOriginChange,
-  onDestinationChange,
-  onCalculateRoute,
   onFavoritesClick,
   selectedCategory,
-  onCategoryChange
+  onCategoryChange,
+  route
 }: UniversitySidebarProps) => {
   const { categories, loading, error } = useCategories();
   return (
@@ -46,7 +27,7 @@ export const UniversitySidebar = ({
       {/* Header */}
       <div className="p-6 border-b border-border">
         <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-          UdeAtlass
+          UdeAtlas
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           Navegación Universitaria
@@ -66,9 +47,9 @@ export const UniversitySidebar = ({
       </div>
 
       {/* Category Filter */}
-      <div className="px-4 pb-4">
+      <div className="px-4 pb-2">
         <Card className="p-4 shadow-sm">
-          <h3 className="font-semibold mb-4 text-foreground flex items-center gap-2">
+          <h3 className="font-semibold mb-3 text-foreground flex items-center gap-2">
             <Building className="h-4 w-4 text-primary" />
             Categorías
           </h3>
@@ -78,7 +59,7 @@ export const UniversitySidebar = ({
               <SelectValue placeholder="Selecciona una categoría" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todas las categorías</SelectItem>
+              <SelectItem value="all"> Ninguna</SelectItem>
               {loading ? (
                 <SelectItem value="loading" disabled>
                   <div className="flex items-center gap-2">
@@ -102,60 +83,58 @@ export const UniversitySidebar = ({
         </Card>
       </div>
 
-      {/* Route Selection */}
-      <div className="flex-1 p-4 space-y-4">
-        <Card className="p-4 shadow-sm">
-          <h3 className="font-semibold mb-4 text-foreground flex items-center gap-2">
-            <Navigation className="h-4 w-4 text-primary" />
-            Calcular Ruta
+      {/* Route Instructions */}
+      <div className="flex-1 p-4 pt-2 space-y-4 min-h-0">
+        <Card className="p-4 shadow-sm h-full flex flex-col min-h-0">
+          <h3 className="font-semibold mb-3 text-foreground flex items-center gap-2 flex-shrink-0">
+            <Route className="h-4 w-4 text-primary" />
+            Indicaciones de Ruta
           </h3>
           
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                Origen
-              </label>
-              <Select value={origin} onValueChange={onOriginChange}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecciona el origen" />
-                </SelectTrigger>
-                <SelectContent>
-                  {buildings.map((building) => (
-                    <SelectItem key={building} value={building}>
-                      {building}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {route.length > 0 ? (
+            <div className="flex-1 flex flex-col min-h-0">
+              <div className="flex-1 overflow-y-auto space-y-2 pr-2 min-h-0">
+                {route.map((node, index) => (
+                  <div key={node.id} className="flex items-start gap-3 p-2 rounded-lg bg-secondary/50 flex-shrink-0">
+                    <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-medium mt-0.5 flex-shrink-0">
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      {node.type === 'building' ? (
+                        <div>
+                          <div className="font-medium text-sm">{node.name}</div>
+                          <div className="text-xs text-muted-foreground">Edificio</div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="font-medium text-sm">Punto de paso {index}</div>
+                          <div className="text-xs text-muted-foreground">Continúa por esta dirección</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="pt-2 border-t border-border mt-2 flex-shrink-0">
+                <div className="text-xs text-muted-foreground">
+                  Tiempo estimado: {Math.ceil(route.length * 2)} minutos
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Distancia aproximada: {Math.ceil(route.length * 50)} metros
+                </div>
+              </div>
             </div>
-
-            <div>
-              <label className="text-sm font-medium text-muted-foreground mb-2 block">
-                Destino
-              </label>
-              <Select value={destination} onValueChange={onDestinationChange}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecciona el destino" />
-                </SelectTrigger>
-                <SelectContent>
-                  {buildings.map((building) => (
-                    <SelectItem key={building} value={building}>
-                      {building}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          ) : (
+            <div className="flex-1 flex items-center justify-center min-h-0">
+              <div className="text-center">
+                <Route className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">
+                  Selecciona origen y destino arriba para ver las indicaciones de ruta
+                </p>
+              </div>
             </div>
-
-            <Button 
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-md"
-              onClick={onCalculateRoute}
-              disabled={!origin || !destination}
-            >
-              <MapPin className="h-4 w-4 mr-2" />
-              Calcular Ruta
-            </Button>
-          </div>
+          )}
         </Card>
       </div>
 
