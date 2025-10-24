@@ -1,37 +1,18 @@
 import { useState } from "react";
 import { UniversitySidebar } from "@/components/UniversitySidebar";
 import { UniversityMap } from "@/components/UniversityMap";
-import { RouteInstructions } from "@/components/RouteInstructions";
-import { BuildingModal } from "@/components/BuildingModal";
+import { RouteControls } from "@/components/RouteControls";
 import { useToast } from "@/hooks/use-toast";
-
-interface Building {
-  id: string;
-  name: string;
-  category: string;
-  description: string;
-  image: string;
-  facilities: string[];
-  hours: string;
-  contact: string;
-}
-
-interface MapNode {
-  id: string;
-  x: number;
-  y: number;
-  type: 'pass' | 'building';
-  name?: string;
-}
+import { useLugares } from "@/hooks/useLugares";
 
 const Index = () => {
+  const { lugares } = useLugares();
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
-  const [route, setRoute] = useState<MapNode[]>([]);
+  const [route, setRoute] = useState<any[]>([]);
   const [isCalculating, setIsCalculating] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
-  const [isBuildingModalOpen, setIsBuildingModalOpen] = useState(false);
+
   const { toast } = useToast();
 
   const handleCalculateRoute = async () => {
@@ -46,7 +27,7 @@ const Index = () => {
 
     if (origin === destination) {
       toast({
-        title: "Error", 
+        title: "Error",
         description: "El origen y destino no pueden ser iguales",
         variant: "destructive"
       });
@@ -54,20 +35,16 @@ const Index = () => {
     }
 
     setIsCalculating(true);
-    
-    // Simulate route calculation
+
     setTimeout(() => {
-      // Sample route nodes for demo
-      const sampleRoute: MapNode[] = [
+      const sampleRoute = [
         { id: '1', x: 200, y: 150, type: 'building', name: origin },
         { id: 'p1', x: 300, y: 175, type: 'pass' },
         { id: 'p2', x: 400, y: 200, type: 'pass' },
         { id: '2', x: 400, y: 200, type: 'building', name: destination },
       ];
-      
       setRoute(sampleRoute);
       setIsCalculating(false);
-      
       toast({
         title: "Ruta calculada",
         description: `Ruta de ${origin} a ${destination} encontrada`,
@@ -82,40 +59,44 @@ const Index = () => {
     });
   };
 
-  const handleBuildingClick = (building: Building) => {
-    setSelectedBuilding(building);
-    setIsBuildingModalOpen(true);
+  const handleSwapRoute = () => {
+    const temp = origin;
+    setOrigin(destination);
+    setDestination(temp);
+    setRoute([]);
   };
 
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
       <UniversitySidebar
-        origin={origin}
-        destination={destination}
-        onOriginChange={setOrigin}
-        onDestinationChange={setDestination}
-        onCalculateRoute={handleCalculateRoute}
         onFavoritesClick={handleFavoritesClick}
         selectedCategory={selectedCategory}
         onCategoryChange={setSelectedCategory}
+        route={route}
+        origin={origin}
+        destination={destination}
       />
 
-      {/* Map */}
-      <div className="flex-1">
-        <UniversityMap
-          route={route}
-          onBuildingClick={handleBuildingClick}
-          selectedCategory={selectedCategory}
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        <RouteControls
+          origin={origin}
+          destination={destination}
+          onOriginChange={setOrigin}
+          onDestinationChange={setDestination}
+          onCalculateRoute={handleCalculateRoute}
+          onSwapRoute={handleSwapRoute}
+          isCalculating={isCalculating}
         />
-      </div>
 
-      {/* Building Modal */}
-      <BuildingModal
-        building={selectedBuilding}
-        isOpen={isBuildingModalOpen}
-        onClose={() => setIsBuildingModalOpen(false)}
-      />
+        {/* Mapa - Ya incluye el modal internamente */}
+        <div className="flex-1">
+          <UniversityMap
+            selectedCategory={selectedCategory}
+          />
+        </div>
+      </div>
     </div>
   );
 };

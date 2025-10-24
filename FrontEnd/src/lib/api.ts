@@ -90,3 +90,24 @@ export const getAllLugares = async () => {
     };
   }
 };
+
+export const getLugarById = async (id: number) => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/lugares/${id}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    const payload = await res.json();
+
+    if (!res.ok || !payload.success) {
+      return { success: false, error: payload.error || 'Error al obtener el lugar' };
+    }
+
+    return { success: true, data: payload.data };
+  } catch (error) {
+    console.error('Network error getLugarById:', error);
+    return { success: false, error: 'Error de red' };
+  }
+};
+
