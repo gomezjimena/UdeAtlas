@@ -1,18 +1,18 @@
-import { Heart, MapPin, User, Navigation, Building, Loader2, Route } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Heart, User, Building, Loader2, Route, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCategories } from "@/hooks/useCategories";
-
-// Las categorías ahora se obtienen dinámicamente de la base de datos
+import { supabase } from "@/lib/supabaseClient";
+import { getUsuarioById } from "@/lib/api"; 
+import { toast } from "sonner";
 
 interface UniversitySidebarProps {
   onFavoritesClick: () => void;
   selectedCategory: string;
   onCategoryChange: (value: string) => void;
   route: any[];
-  origin: string;
-  destination: string;
 }
 
 export const UniversitySidebar = ({
@@ -22,6 +22,84 @@ export const UniversitySidebar = ({
   route
 }: UniversitySidebarProps) => {
   const { categories, loading, error } = useCategories();
+  const [user, setUser] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+
+  // --- 1️⃣ Obtener sesión actual y datos del usuario ---
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUser(session.user);
+        
+        // --- 2️⃣ Obtener perfil completo desde la API ---
+        setLoadingProfile(true);
+        try {
+          const response = await getUsuarioById(session.user.id);
+          
+          console.log('Response completa:', response); // 🔍 Debug
+          
+          if (response.success && response.data) {
+            console.log('✅ Datos del usuario:', response.data);
+            console.log('✅ Nombre:', response.data.nombre);
+            console.log('✅ Rol:', response.data.rol);
+            setUserProfile(response.data);
+          } else {
+            console.error('❌ Error al obtener perfil:', response.error);
+            toast.error('No se pudo cargar el perfil del usuario');
+          }
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
+          toast.error('Error al cargar el perfil');
+        } finally {
+          setLoadingProfile(false);
+        }
+      }
+    };
+
+    getUser();
+
+    // --- 3️⃣ Escuchar cambios de sesión (login/logout) ---
+    const { data: subscription } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+        
+        // Cargar perfil cuando hay nueva sesión
+        setLoadingProfile(true);
+        try {
+          const response = await getUsuarioById(session.user.id);
+          if (response.success && response.data) {
+            const userData = response.data.data || response.data;
+            setUserProfile(userData);
+          }
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
+        } finally {
+          setLoadingProfile(false);
+        }
+      } else {
+        setUser(null);
+        setUserProfile(null);
+      }
+    });
+
+    return () => {
+      subscription.subscription.unsubscribe();
+    };
+  }, []);
+
+  // --- 4️⃣ Cerrar sesión ---
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    toast.success("Sesión cerrada correctamente");
+    setUser(null);
+    setUserProfile(null);
+  };
+
+  // 🔍 Debug: Ver el estado actual
+  console.log('Estado userProfile:', userProfile);
+
   return (
     <div className="w-80 h-screen bg-gradient-to-b from-background to-secondary border-r border-border flex flex-col">
       {/* Header */}
@@ -141,15 +219,45 @@ export const UniversitySidebar = ({
       {/* User Profile */}
       <div className="p-4 border-t border-border">
         <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <User className="h-5 w-5 text-primary" />
+          {loadingProfile ? (
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <Loader2 className="h-5 w-5 text-primary animate-spin" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-sm">Cargando...</p>
+                <p className="text-xs text-muted-foreground">Obteniendo perfil</p>
+              </div>
             </div>
-            <div className="flex-1">
-              <p className="font-medium text-sm">Usuario Invitado</p>
-              <p className="text-xs text-muted-foreground">Click para iniciar sesión</p>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div 
+                className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center cursor-pointer hover:bg-primary/20 transition-colors relative group"
+                onClick={user ? handleLogout : undefined}
+                title={user ? "Cerrar sesión" : "Usuario invitado"}
+              >
+                {user ? <LogOut className="h-5 w-5 text-primary" /> : <User className="h-5 w-5 text-primary" />}
+                
+                {/* Tooltip */}
+                {user && (
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap border border-border">
+                    Cerrar sesión
+                  </div>
+                )}
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-sm">
+                  {user ? (userProfile?.nombre || "Sin nombre") : "Usuario Invitado"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {user 
+                    ? (userProfile?.rol?.nombre || "Sin rol asignado") 
+                    : "Click para iniciar sesión"
+                  }
+                </p>
+              </div>
             </div>
-          </div>
+          )}
         </Card>
       </div>
     </div>

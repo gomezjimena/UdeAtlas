@@ -50,7 +50,7 @@ export const RouteControls = ({
                   Error al cargar los lugares
                 </SelectItem>
               ) : (
-                lugares.map((lugar) => (
+                lugares.filter(lugar => lugar.id_tipo_lugar !== 7).map((lugar) => (
                   <SelectItem
                     key={lugar.id}
                     value={lugar.id.toString()}
@@ -100,7 +100,7 @@ export const RouteControls = ({
                   Error al cargar los lugares
                 </SelectItem>
               ) : (
-                lugares.map((lugar) => (
+                lugares.filter(lugar => lugar.id_tipo_lugar !== 7).map((lugar) => (
                   <SelectItem
                     key={lugar.id}
                     value={lugar.id.toString()}

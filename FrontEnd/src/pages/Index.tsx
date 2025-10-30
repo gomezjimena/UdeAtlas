@@ -4,14 +4,20 @@ import { UniversityMap } from "@/components/UniversityMap";
 import { RouteControls } from "@/components/RouteControls";
 import { useToast } from "@/hooks/use-toast";
 import { useLugares } from "@/hooks/useLugares";
+import { FavoritesView } from "@/components/FavoritesView";
 
 const Index = () => {
   const { lugares } = useLugares();
+  
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [route, setRoute] = useState<any[]>([]);
   const [isCalculating, setIsCalculating] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [view, setView] = useState<"map" | "favorites">("map");
+  
+  // 🔹 Key para forzar re-render de FavoritesView
+  const [favoritesKey, setFavoritesKey] = useState(0);
 
   const { toast } = useToast();
 
@@ -53,10 +59,7 @@ const Index = () => {
   };
 
   const handleFavoritesClick = () => {
-    toast({
-      title: "Favoritos",
-      description: "Funcionalidad disponible después de conectar Supabase",
-    });
+    setView(view === "favorites" ? "map" : "favorites");
   };
 
   const handleSwapRoute = () => {
@@ -64,6 +67,11 @@ const Index = () => {
     setOrigin(destination);
     setDestination(temp);
     setRoute([]);
+  };
+
+  // 🔹 Callback para refrescar favoritos
+  const handleFavoriteChange = () => {
+    setFavoritesKey(prev => prev + 1);
   };
 
   return (
@@ -74,8 +82,6 @@ const Index = () => {
         selectedCategory={selectedCategory}
         onCategoryChange={setSelectedCategory}
         route={route}
-        origin={origin}
-        destination={destination}
       />
 
       {/* Main Content */}
@@ -90,11 +96,18 @@ const Index = () => {
           isCalculating={isCalculating}
         />
 
-        {/* Mapa - Ya incluye el modal internamente */}
         <div className="flex-1">
-          <UniversityMap
-            selectedCategory={selectedCategory}
-          />
+          {view === "map" ? (
+            <UniversityMap 
+              selectedCategory={selectedCategory}
+              onFavoriteChange={handleFavoriteChange}
+            />
+          ) : (
+            <FavoritesView 
+              key={favoritesKey} 
+              onBackToMap={() => setView("map")} 
+            />
+          )}
         </div>
       </div>
     </div>

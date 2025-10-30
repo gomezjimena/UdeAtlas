@@ -9,6 +9,7 @@ datasource db {
 
 model tbl_Usuario {
   id                Int                @id @default(autoincrement())
+  auth_user_id      String?            @unique
   nombre            String
   documento         String             @unique
   correo            String             @unique
@@ -119,6 +120,7 @@ model tbl_Conexion {
   distancia        Float
   id_lugar_origen  Int
   id_lugar_destino Int
+  descripcion      String?
   lugarDestino     tbl_Lugar             @relation("ConexionDestino", fields: [id_lugar_destino], references: [id])
   lugarOrigen      tbl_Lugar             @relation("ConexionOrigen", fields: [id_lugar_origen], references: [id])
   rutas            tbl_Conexion_X_Ruta[]

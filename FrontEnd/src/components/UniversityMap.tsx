@@ -3,8 +3,9 @@ import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import universityMapImage from "@/assets/mapa3.jpg";
 import { useLugares } from "@/hooks/useLugares";
-import { getLugarById } from "@/lib/api"; // 🟢 Importa tu función de API
-import { LugarModal } from "@/components/LugarModal"; // 🟢 Importa el modal (ajusta la ruta)
+import { getLugarById } from "@/lib/api"; 
+import { LugarModal } from "@/components/LugarModal"; 
+import { MapPin } from "lucide-react";
 
 interface MapNode {
   id: string;
@@ -16,16 +17,17 @@ interface MapNode {
 
 interface UniversityMapProps {
   selectedCategory?: string;
+  onFavoriteChange?: () => void;
 }
 
-export const UniversityMap = ({ selectedCategory}: UniversityMapProps) => {
+export const UniversityMap = ({ selectedCategory, onFavoriteChange }: UniversityMapProps) => {
   const { lugares, loading, error } = useLugares();
 
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const mapRef = useRef<HTMLDivElement | null>(null);
 
-  // 🟢 Estados para el modal
+  //  Estados para el modal
   const [selectedLugar, setSelectedLugar] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -36,21 +38,21 @@ export const UniversityMap = ({ selectedCategory}: UniversityMapProps) => {
     setPosition({ x: 0, y: 0 });
   };
 
-  // 🟢 Función para abrir el modal con datos completos
+  // Función para abrir el modal con datos completos
   const handleMarkerClick = async (id: string) => {
-    console.log("🔵 Clic en marcador, ID:", id); // Debug 1
+    console.log("🔵 Clic en marcador, ID:", id);
     
     try {
-      console.log("🔵 Llamando a getLugarById..."); // Debug 2
+      console.log("🔵 Llamando a getLugarById...");
       const response = await getLugarById(Number(id));
       
-      console.log("🔵 Respuesta recibida:", response); // Debug 3
+      console.log("🔵 Respuesta recibida:", response);
       
       if (response.success) {
-        console.log("🔵 Datos del lugar:", response.data); // Debug 4
+        console.log("🔵 Datos del lugar:", response.data);
         setSelectedLugar(response.data);
         setIsModalOpen(true);
-        console.log("🔵 Modal debería abrirse ahora"); // Debug 5
+        console.log("🔵 Modal debería abrirse ahora");
       } else {
         console.error("❌ Error al cargar lugar:", response.error);
       }
@@ -59,9 +61,15 @@ export const UniversityMap = ({ selectedCategory}: UniversityMapProps) => {
     }
   };
 
-  // Convertir lugares a nodos (solo los que tengan coords válidas)
+  // Convertir lugares a nodos (solo los que tengan coords válidas y NO sean tipo 7)
   const mapNodes: MapNode[] = (lugares || [])
-    .filter(l => l.x_coord !== null && l.x_coord !== undefined && l.y_coord !== null && l.y_coord !== undefined)
+    .filter(l => 
+      l.x_coord !== null && 
+      l.x_coord !== undefined && 
+      l.y_coord !== null && 
+      l.y_coord !== undefined &&
+      l.id_tipo_lugar !== 7  // 👈 FILTRO: Excluir lugares con id_tipo_lugar == 7
+    )
     .map(l => ({
       id: String(l.id),
       x: Number(l.x_coord),
@@ -110,7 +118,7 @@ export const UniversityMap = ({ selectedCategory}: UniversityMapProps) => {
           <img
             src={universityMapImage}
             alt="Mapa de la Universidad"
-            className="absolute inset-0 w-full h-full object-contain transition-transform duration-200"
+            className="absolute inset-0 w-full h-full object-fill transition-transform duration-200"
             style={{
               transform: `scale(${scale}) translate(${position.x / scale}px, ${position.y / scale}px)`,
               transformOrigin: 'center center'
@@ -126,20 +134,35 @@ export const UniversityMap = ({ selectedCategory}: UniversityMapProps) => {
               transformOrigin: 'center center'
             }}
           >
-            {mapNodes.map(node => (
-              <div
-                key={node.id}
-                className="absolute pointer-events-auto flex flex-col items-center cursor-pointer transform -translate-x-1/2 -translate-y-1/2"
-                style={{
-                  left: `${node.x}px`,
-                  top: `${node.y}px`,
-                }}
-                onClick={() => handleMarkerClick(node.id)} // 🟢 Usar la nueva función
-                title={node.name}
-              >
-                <div className="w-3 h-3 rounded-full bg-primary border-2 border-white shadow-lg" />
-              </div>
-            ))}
+            {mapNodes.map(node => {
+              const shouldShowIcon = selectedCategory !== "all" && 
+                                    node.id_tipo_lugar === parseInt(selectedCategory);
+              
+              return (
+                <div
+                  key={node.id}
+                  className="absolute pointer-events-auto flex flex-col items-center cursor-pointer transform -translate-x-1/2 -translate-y-1/2"
+                  style={{
+                    left: `${node.x}%`,   
+                    top: `${node.y}%`,    
+                  }}
+                  onClick={() => handleMarkerClick(node.id)} 
+                  title={node.name}
+                >
+                  {/* Punto del marcador */}
+                  <div className={`w-3 h-3 rounded-full border-2 border-white shadow-lg ${
+                    shouldShowIcon ? 'bg-accent' : 'bg-primary'
+                  }`} />
+                  
+                  {/* Icono flotante cuando coincide con categoría */}
+                  {shouldShowIcon && (
+                    <div className="absolute -top-8 bg-accent rounded-full p-2 shadow-lg animate-bounce">
+                      <MapPin className="h-4 w-4 text-white" />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -149,6 +172,7 @@ export const UniversityMap = ({ selectedCategory}: UniversityMapProps) => {
         lugar={selectedLugar}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        onFavoriteChange={onFavoriteChange}
       />
     </>
   );
