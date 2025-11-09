@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 3001;
 
 const cors = require('cors');
 app.use(cors({
-  origin: ['http://localhost:8080', 'http://localhost:3000'],
+  origin: ['https://ude-atlas.vercel.app/login' ,'http://localhost:8080', 'http://localhost:3000'],
   credentials: true
 }));
 
