@@ -8,8 +8,13 @@ const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3001;
 
 const cors = require('cors');
+
 app.use(cors({
-  origin: ['https://ude-atlas.vercel.app/login' ,'http://localhost:8080', 'http://localhost:3000'],
+  origin: [
+    'https://ude-atlas.vercel.app',
+    'https://ude-atlas-git-master-jimena-munozs-projects.vercel.app', // opcional para previews
+    'http://localhost:8080'
+  ],
   credentials: true
 }));
 
@@ -1107,7 +1112,7 @@ app.use((err, req, res, next) => {
 
 // Iniciar servidor
 app.listen(PORT, () => {
-  console.log(`Servidor ejecutándose en http://localhost:${PORT}`);
+  console.log(`Servidor en puerto ${PORT}`);
 });
 
 // Cerrar conexión de Prisma al terminar
