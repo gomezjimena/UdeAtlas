@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getFavoritosByUser } from '@/lib/api';
+import { getFavoritosByUser, getUserByAuthId } from '@/lib/api';
 import { supabase } from '@/lib/supabaseClient';
 
 export interface Favorito {
@@ -33,8 +33,9 @@ export const useFavorites = (): UseFavoritesReturn => {
       setLoading(true);
       setError(null);
       
-      // Obtener usuario autenticado
+      // Obtener usuario autenticado de Supabase
       const { data: { user } } = await supabase.auth.getUser();
+      console.log('🔍 Usuario de Supabase:', user);
       
       if (!user) {
         setFavorites([]);
@@ -43,25 +44,24 @@ export const useFavorites = (): UseFavoritesReturn => {
         return;
       }
 
-      // Obtener el id numérico del usuario desde tu tabla tbl_Usuario
-      const { data: userData, error: userError } = await supabase
-        .from('tbl_Usuario')
-        .select('id')
-        .eq('auth_user_id', user.id)
-        .single();
+      // 🔥 CAMBIO: Obtener usuario desde tu backend en lugar de Supabase
+      const userResult = await getUserByAuthId(user.id);
+      console.log('🔍 Resultado del backend:', userResult);
 
-      if (userError || !userData) {
-        console.log('Usuario no encontrado en tbl_Usuario, posiblemente no está logueado');
+      if (!userResult.success || !userResult.data) {
+        console.log('Usuario no encontrado en el backend');
         setFavorites([]);
         setUserId(null);
         setLoading(false);
         return;
       }
 
-      setUserId(userData.id);
+      setUserId(userResult.data.id);
+      console.log('🔍 userId final:', userResult.data.id);
 
       // Obtener favoritos del usuario
-      const result = await getFavoritosByUser(userData.id);
+      const result = await getFavoritosByUser(userResult.data.id);
+      console.log('🔍 Resultado de favoritos:', result);
       
       if (result.success) {
         setFavorites(result.data || []);
@@ -71,7 +71,6 @@ export const useFavorites = (): UseFavoritesReturn => {
       }
     } catch (err) {
       console.error('Error in useFavorites:', err);
-      // No mostrar error si simplemente no hay usuario
       setFavorites([]);
       setError(null);
     } finally {

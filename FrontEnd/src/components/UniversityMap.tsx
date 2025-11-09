@@ -3,9 +3,10 @@ import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import universityMapImage from "@/assets/mapa3.jpg";
 import { useLugares } from "@/hooks/useLugares";
-import { getLugarById } from "@/lib/api"; 
+import { getLugarById, RutaCalculada } from "@/lib/api"; 
 import { LugarModal } from "@/components/LugarModal"; 
 import { MapPin } from "lucide-react";
+import { RouteOverlay } from "@/components/RouteOverlay";
 
 interface MapNode {
   id: string;
@@ -18,16 +19,16 @@ interface MapNode {
 interface UniversityMapProps {
   selectedCategory?: string;
   onFavoriteChange?: () => void;
+  ruta?: RutaCalculada | null;
 }
 
-export const UniversityMap = ({ selectedCategory, onFavoriteChange }: UniversityMapProps) => {
+export const UniversityMap = ({ selectedCategory, onFavoriteChange, ruta }: UniversityMapProps) => {
   const { lugares, loading, error } = useLugares();
 
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const mapRef = useRef<HTMLDivElement | null>(null);
 
-  //  Estados para el modal
   const [selectedLugar, setSelectedLugar] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -38,26 +39,25 @@ export const UniversityMap = ({ selectedCategory, onFavoriteChange }: University
     setPosition({ x: 0, y: 0 });
   };
 
-  // Función para abrir el modal con datos completos
   const handleMarkerClick = async (id: string) => {
-    console.log("🔵 Clic en marcador, ID:", id);
+    console.log("🔹 Clic en marcador, ID:", id);
     
     try {
-      console.log("🔵 Llamando a getLugarById...");
+      console.log("📡 Llamando a getLugarById...");
       const response = await getLugarById(Number(id));
       
-      console.log("🔵 Respuesta recibida:", response);
+      console.log(" Respuesta recibida:", response);
       
       if (response.success) {
-        console.log("🔵 Datos del lugar:", response.data);
+        console.log(" Datos del lugar:", response.data);
         setSelectedLugar(response.data);
         setIsModalOpen(true);
-        console.log("🔵 Modal debería abrirse ahora");
+        console.log(" Modal debería abrirse ahora");
       } else {
-        console.error("❌ Error al cargar lugar:", response.error);
+        console.error(" Error al cargar lugar:", response.error);
       }
     } catch (err) {
-      console.error("❌ Error al obtener lugar:", err);
+      console.error(" Error al obtener lugar:", err);
     }
   };
 
@@ -68,7 +68,7 @@ export const UniversityMap = ({ selectedCategory, onFavoriteChange }: University
       l.x_coord !== undefined && 
       l.y_coord !== null && 
       l.y_coord !== undefined &&
-      l.id_tipo_lugar !== 7  // 👈 FILTRO: Excluir lugares con id_tipo_lugar == 7
+      l.id_tipo_lugar !== 7
     )
     .map(l => ({
       id: String(l.id),
@@ -77,6 +77,9 @@ export const UniversityMap = ({ selectedCategory, onFavoriteChange }: University
       id_tipo_lugar: Number(l.id_tipo_lugar),
       name: l.nombre
     }));
+
+  // IDs de lugares que están en la ruta (para resaltarlos)
+  const rutaLugarIds = new Set(ruta?.lugares.map(l => String(l.id)) || []);
 
   if (loading) {
     return (
@@ -93,8 +96,6 @@ export const UniversityMap = ({ selectedCategory, onFavoriteChange }: University
       </div>
     );
   }
-
-  console.log("🟢 Estado del modal - isOpen:", isModalOpen, "selectedLugar:", selectedLugar);
 
   return (
     <>
@@ -126,6 +127,15 @@ export const UniversityMap = ({ selectedCategory, onFavoriteChange }: University
             draggable={false}
           />
 
+          {/* Route Overlay */}
+          {ruta && (
+            <RouteOverlay 
+              ruta={ruta} 
+              scale={scale} 
+              position={position} 
+            />
+          )}
+
           {/* Markers */}
           <div
             className="absolute inset-0 z-10 pointer-events-none"
@@ -137,6 +147,8 @@ export const UniversityMap = ({ selectedCategory, onFavoriteChange }: University
             {mapNodes.map(node => {
               const shouldShowIcon = selectedCategory !== "all" && 
                                     node.id_tipo_lugar === parseInt(selectedCategory);
+              
+              const isInRoute = rutaLugarIds.has(node.id);
               
               return (
                 <div
@@ -151,11 +163,12 @@ export const UniversityMap = ({ selectedCategory, onFavoriteChange }: University
                 >
                   {/* Punto del marcador */}
                   <div className={`w-3 h-3 rounded-full border-2 border-white shadow-lg ${
+                    isInRoute ? 'bg-purple-500 scale-125' : 
                     shouldShowIcon ? 'bg-accent' : 'bg-primary'
                   }`} />
                   
                   {/* Icono flotante cuando coincide con categoría */}
-                  {shouldShowIcon && (
+                  {shouldShowIcon && !isInRoute && (
                     <div className="absolute -top-8 bg-accent rounded-full p-2 shadow-lg animate-bounce">
                       <MapPin className="h-4 w-4 text-white" />
                     </div>
@@ -167,7 +180,7 @@ export const UniversityMap = ({ selectedCategory, onFavoriteChange }: University
         </div>
       </div>
 
-      {/* 🟢 Modal fuera del contenedor del mapa */}
+      {/* Modal fuera del contenedor del mapa */}
       <LugarModal 
         lugar={selectedLugar}
         isOpen={isModalOpen}

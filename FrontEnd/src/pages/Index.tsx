@@ -4,6 +4,7 @@ import { UniversityMap } from "@/components/UniversityMap";
 import { RouteControls } from "@/components/RouteControls";
 import { useToast } from "@/hooks/use-toast";
 import { useLugares } from "@/hooks/useLugares";
+import { useRutas } from "@/hooks/useRutas";
 import { FavoritesView } from "@/components/FavoritesView";
 
 const Index = () => {
@@ -11,15 +12,14 @@ const Index = () => {
   
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
-  const [route, setRoute] = useState<any[]>([]);
-  const [isCalculating, setIsCalculating] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [view, setView] = useState<"map" | "favorites">("map");
-  
-  // 🔹 Key para forzar re-render de FavoritesView
   const [favoritesKey, setFavoritesKey] = useState(0);
 
   const { toast } = useToast();
+  
+  // Hook de rutas
+  const { ruta, loading: isCalculating, error: rutaError, cached, obtenerRuta, limpiarRuta } = useRutas();
 
   const handleCalculateRoute = async () => {
     if (!origin || !destination) {
@@ -30,7 +30,7 @@ const Index = () => {
       });
       return;
     }
-
+  
     if (origin === destination) {
       toast({
         title: "Error",
@@ -39,25 +39,34 @@ const Index = () => {
       });
       return;
     }
-
-    setIsCalculating(true);
-
-    setTimeout(() => {
-      const sampleRoute = [
-        { id: '1', x: 200, y: 150, type: 'building', name: origin },
-        { id: 'p1', x: 300, y: 175, type: 'pass' },
-        { id: 'p2', x: 400, y: 200, type: 'pass' },
-        { id: '2', x: 400, y: 200, type: 'building', name: destination },
-      ];
-      setRoute(sampleRoute);
-      setIsCalculating(false);
+  
+    console.log(' Iniciando cálculo de ruta');
+    console.log(' Origen ID:', origin);
+    console.log(' Destino ID:', destination);
+  
+    const success = await obtenerRuta(Number(origin), Number(destination));
+  
+    console.log(' Resultado obtenerRuta:', success);
+    console.log(' Ruta:', ruta);
+    console.log(' Error:', rutaError);
+    console.log(' Cached:', cached);
+  
+    if (success) {
+      const origenNombre = lugares.find(l => l.id === Number(origin))?.nombre || "Origen";
+      const destinoNombre = lugares.find(l => l.id === Number(destination))?.nombre || "Destino";
+      
       toast({
-        title: "Ruta calculada",
-        description: `Ruta de ${origin} a ${destination} encontrada`,
+        title: cached ? " Ruta encontrada (caché)" : " Ruta calculada",
+        description: `De ${origenNombre} a ${destinoNombre}`,
       });
-    }, 2000);
+    } else {
+      toast({
+        title: " Error",
+        description: rutaError || "No se pudo calcular la ruta",
+        variant: "destructive"
+      });
+    }
   };
-
   const handleFavoritesClick = () => {
     setView(view === "favorites" ? "map" : "favorites");
   };
@@ -66,26 +75,33 @@ const Index = () => {
     const temp = origin;
     setOrigin(destination);
     setDestination(temp);
-    setRoute([]);
+    limpiarRuta();
   };
 
-  // 🔹 Callback para refrescar favoritos
+  const handleClearRoute = () => {
+    setOrigin("");
+    setDestination("");
+    limpiarRuta();
+  };
+
   const handleFavoriteChange = () => {
     setFavoritesKey(prev => prev + 1);
   };
 
   return (
-    <div className="flex h-screen bg-background">
-      {/* Sidebar */}
+    <div className="flex h-screen bg-background overflow-hidden">
+      {/* Sidebar con información de la ruta */}
       <UniversitySidebar
         onFavoritesClick={handleFavoritesClick}
         selectedCategory={selectedCategory}
         onCategoryChange={setSelectedCategory}
-        route={route}
+        ruta={ruta}
+        isCalculating={isCalculating}
+        cached={cached}
       />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col overflow-hidden">
         <RouteControls
           origin={origin}
           destination={destination}
@@ -93,14 +109,16 @@ const Index = () => {
           onDestinationChange={setDestination}
           onCalculateRoute={handleCalculateRoute}
           onSwapRoute={handleSwapRoute}
+          onClearRoute={handleClearRoute}
           isCalculating={isCalculating}
         />
 
-        <div className="flex-1">
+        <div className="flex-1 overflow-hidden">
           {view === "map" ? (
             <UniversityMap 
               selectedCategory={selectedCategory}
               onFavoriteChange={handleFavoriteChange}
+              ruta={ruta}
             />
           ) : (
             <FavoritesView 
