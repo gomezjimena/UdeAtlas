@@ -652,7 +652,7 @@ app.post('/api/eventos', async (req, res) => {
       });
     }
 
-    if (!fecha_evento) {
+    if (!fecha_evento) { //Falto validacion de fecha de evento
       return res.status(400).json({ 
         success: false, 
         message: 'La fecha del evento es obligatoria' 
