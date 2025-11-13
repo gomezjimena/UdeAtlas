@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { PrismaClient } = require('./node_modules/@prisma/client');
+const { PrismaClient } = require('@prisma/client');
 const { supabase } = require('./supabaseClient');
 
 const app = express();
@@ -10,14 +10,12 @@ const PORT = process.env.PORT || 3001;
 app.use(cors({
   origin: [
     'https://ude-atlas.vercel.app',
-    'https://ude-atlas-git-master-jimena-munozs-projects.vercel.app', // opcional para previews
+    'https://ude-atlas-git-master-jimena-munozs-projects.vercel.app', // opcional
     'http://localhost:8080'
   ],
   credentials: true
 }));
 
-// Middleware
-app.use(cors());
 app.use(express.json());
 
 // Ruta para sincronizar usuario de Supabase con Prisma
